@@ -73,6 +73,36 @@ At this time there is no way to configure the binary.  This is on the
 roadmap.  The idea is that the source and detail-type values in the event
 payload will be configurable.
 
+### PAM
+
+Add the following line to the end of `/etc/pam.d/sshd`:
+
+```
+session    optional    pam_exec.so /usr/local/bin/tattle
+```
+
+This has been tested on Ubuntu 14.04 and 16.04 systems.
+
+### EC2
+
+You will need to update the EC2 server's IAM role to allow `events:PutEvent`
+actions so that tattle can interact with the CloudWatchEvents service.
+There is no Resource scoping on this action.  Here is a sample policy:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowCloudWatchEventEmit",
+            "Effect": "Allow",
+            "Action": "events:PutEvents",
+            "Resource": "*"
+        }
+    ]
+}
+```
+
 ## What PAM Gives Us
 
 Upon SSH authentication
@@ -93,7 +123,7 @@ PAM_TYPE=close_session
 PAM_TTY=ssh
 ```
 
-## Installing
+## Installation
 
 Download the latest release and put it in the `/usr/local/bin/` directory
 on the target machine.  You can use any directory you like, so long as you
@@ -102,15 +132,25 @@ change the PAM configuration to reference the correct installation path.
 The binary is self-contained, all libraries and dependencies are
 statically-linked.
 
-## Configuring PAM
-
-Add the following line to the end of `/etc/pam.d/sshd`:
+Before configuring PAM, you can test that everything is working by running
+the following command on the server to send a test event:
 
 ```
-session    optional    pam_exec.so /usr/local/bin/tattle
+PAM_TYPE="open_session" PAM_USER="test" PAM_RHOST="test" tattle
 ```
 
-This has been tested on Ubuntu 14.04 and 16.04 systems.
+Make sure that you have a CloudWatch Event Rule setup or else the event
+will not be consumed and processed by anything.  The simplest Event Rule
+is to add a target to an SNS topic that sends an email to you.  The
+broadest event pattern to use when creating the rule is:
+
+```json
+{
+  "source": [
+    "com.unbounce.tattle"
+  ]
+}
+```
 
 ## Failure Conditions
 
