@@ -4,7 +4,7 @@ workflow "Scan for Vulnerabilities with SonarCloud" {
 }
 
 action "sonarcloud-scan" {
-  uses = "./.github/action/sonarcloud-scan"
+  uses = "docker://unbounce/sonarcloud-github"
   secrets = ["SONAR_LOGIN"]
   env = {
     "SONAR_PROJECT_KEY" = "unbounce_tattle"
